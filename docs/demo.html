@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FR 智能助手 · AI for FineReport</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--card:#131d2b;--card2:#1a2840;--border:#1e3348;--accent:#4fc3f7;--accent2:#7c4dff;--green:#66bb6a;--red:#ef5350;--orange:#ff9800;--gold:#ffd54f;--text:#d0dce8;--dim:#6a8aa8;--grad:linear-gradient(135deg,#4fc3f7,#7c4dff)}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Hero */
+.hero{background:var(--grad);padding:60px 40px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.03) 0%,transparent 70%);animation:float 20s ease infinite}
+@keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,30px)}}
+.hero h1{font-size:48px;font-weight:800;color:#fff;position:relative;text-shadow:0 2px 20px rgba(0,0,0,.3)}
+.hero p{font-size:18px;color:rgba(255,255,255,.85);margin-top:12px;position:relative}
+.hero .sub{font-size:14px;color:rgba(255,255,255,.6);margin-top:6px}
+.hero .badge-group{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;position:relative}
+.hero .badge{background:rgba(255,255,255,.15);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;backdrop-filter:blur(4px)}
+
+/* Nav */
+nav{background:var(--card);padding:12px 40px;display:flex;gap:24px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+nav a{color:var(--dim);font-size:14px;font-weight:500;padding:4px 0;border-bottom:2px solid transparent;transition:.2s}
+nav a:hover,nav a.active{color:var(--accent);border-bottom-color:var(--accent);text-decoration:none}
+
+/* Sections */
+.section{padding:50px 40px;max-width:1200px;margin:0 auto}
+.section h2{font-size:28px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.section h2 .emoji{font-size:28px}
+.section .desc{color:var(--dim);margin-bottom:30px;font-size:15px}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;transition:.3s}
+.card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 8px 30px rgba(79,195,247,.08)}
+.card .icon{font-size:32px;margin-bottom:10px}
+.card h3{font-size:16px;font-weight:600;margin-bottom:6px;color:var(--accent)}
+.card p{font-size:13px;color:var(--dim);line-height:1.6}
+.card .tag{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-top:8px}
+.tag.python{background:rgba(79,195,247,.2);color:var(--accent)}
+.tag.java{background:rgba(124,77,255,.2);color:var(--accent2)}
+.tag.js{background:rgba(255,213,79,.2);color:var(--gold)}
+.tag.ok{background:rgba(102,187,106,.2);color:var(--green)}
+.tag.warn{background:rgba(255,152,0,.2);color:var(--orange)}
+.tag.err{background:rgba(239,83,80,.2);color:var(--red)}
+
+/* Architecture */
+.arch{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:30px;overflow-x:auto}
+.arch pre{background:var(--bg);padding:20px;border-radius:8px;font-size:13px;line-height:1.8;color:var(--text);overflow-x:auto}
+.arch pre .hl{color:var(--accent)}
+.arch pre .hl2{color:var(--green)}
+.arch pre .hl3{color:var(--gold)}
+.arch pre .dim{color:var(--dim)}
+
+/* Flow */
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;padding:20px 0}
+.flow-node{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-size:13px;text-align:center;min-width:100px}
+.flow-node .fn{font-size:20px;display:block;margin-bottom:4px}
+.flow-node.active{border-color:var(--accent);background:rgba(79,195,247,.1)}
+.flow-arrow{color:var(--dim);font-size:20px}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--dim);font-weight:600;font-size:12px}
+td{padding:8px 12px;border-bottom:1px solid var(--border)}
+tr:hover{background:rgba(79,195,247,.03)}
+
+/* Screenshot placeholders */
+.mock-preview{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:20px;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;font-size:13px;color:var(--dim)}
+.mock-preview .big{font-size:36px}
+
+/* Footer */
+footer{text-align:center;padding:30px;border-top:1px solid var(--border);color:var(--dim);font-size:13px}
+
+/* Responsive */
+@media(max-width:768px){.hero h1{font-size:28px}.section{padding:30px 20px}nav{padding:10px 20px;gap:12px;overflow-x:auto}.grid-2,.grid-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ========== HERO ========== -->
+<div class="hero">
+<h1>🤖 FR 智能助手</h1>
+<p>AI-powered FineReport 数字员工 · 让报表开发智能自动化</p>
+<div class="sub">基于 RAG + LLM + OCR + Agent 的 FineReport 全流程智能辅助系统</div>
+<div class="badge-group">
+<span class="badge">🐍 Python</span>
+<span class="badge">☕ Java</span>
+<span class="badge">🧠 RAG</span>
+<span class="badge">📸 OCR</span>
+<span class="badge">🤖 Agent</span>
+<span class="badge">📊 FineReport</span>
+</div>
+</div>
+
+<!-- ========== NAV ========== -->
+<nav>
+<a href="#overview" class="active">📋 项目概览</a>
+<a href="#arch">🏗️ 架构</a>
+<a href="#modules">📦 模块分析</a>
+<a href="#opensource">🔓 开源清单</a>
+<a href="#demo">🎬 功能演示</a>
+</nav>
+
+<!-- ========== OVERVIEW ========== -->
+<div id="overview" class="section">
+<h2><span class="emoji">📋</span> 项目概览</h2>
+<div class="desc">FR 智能助手是一个面向 FineReport 报表开发场景的 AI 辅助系统，通过多种 AI 技术实现报表需求的智能分析、自动生成和知识管理。</div>
+
+<div class="grid-3">
+<div class="card">
+<div class="icon">🧠</div>
+<h3>RAG 知识增强</h3>
+<p>基于向量检索的 SOP 知识库，自动解析 FR 模板文件（.cpt），构建报表知识图谱，支持智能问答与方案推荐。</p>
+<span class="tag python">Python</span>
+</div>
+<div class="card">
+<div class="icon">📸</div>
+<h3>OCR 识别</h3>
+<p>支持 Tesseract 与 Step-1V 双引擎，从图片中提取报表结构和表格数据，自动转换为可编辑的报表模板。</p>
+<span class="tag python">Python</span>
+</div>
+<div class="card">
+<div class="icon">🤖</div>
+<h3>AI Agent</h3>
+<p>多版本 Agent 演进（v3→v6→v7），支持需求理解、SQL 生成、报表构建、前后端协作的全自动化流程编排。</p>
+<span class="tag python">Python</span>
+</div>
+<div class="card">
+<div class="icon">🗄️</div>
+<h3>SQL 引擎</h3>
+<p>智能 SQL 生成与优化引擎，自动识别数据源结构，根据自然语言需求生成对应的查询语句。</p>
+<span class="tag python">Python</span>
+</div>
+<div class="card">
+<div class="icon">☕</div>
+<h3>Java Agent 工具</h3>
+<p>FineReport 进程附加与分析工具集，支持运行时资源解密、类转储、插件热加载等调试与逆向分析能力。</p>
+<span class="tag java">Java</span>
+</div>
+<div class="card">
+<div class="icon">🌐</div>
+<h3>Web 服务</h3>
+<p>基于 FastAPI 构建的 RESTful API 服务，提供报表管理、数据源连接、OCR 识别、AI 对话等完整接口。</p>
+<span class="tag python">Python</span>
+</div>
+</div>
+</div>
+
+<!-- ========== ARCHITECTURE ========== -->
+<div id="arch" class="section">
+<h2><span class="emoji">🏗️</span> 系统架构</h2>
+<div class="desc">从用户需求到报表产出的完整数据流与模块协作关系</div>
+
+<div class="flow">
+<div class="flow-node active"><span class="fn">📄</span>需求输入</div>
+<span class="flow-arrow">→</span>
+<div class="flow-node"><span class="fn">🧠</span>LLM分析</div>
+<span class="flow-arrow">→</span>
+<div class="flow-node"><span class="fn">📚</span>RAG检索</div>
+<span class="flow-arrow">→</span>
+<div class="flow-node"><span class="fn">🗄️</span>SQL生成</div>
+<span class="flow-arrow">→</span>
+<div class="flow-node"><span class="fn">📊</span>CPT构建</div>
+<span class="flow-arrow">→</span>
+<div class="flow-node"><span class="fn">🚀</span>部署上线</div>
+</div>
+
+<div class="arch">
+<pre>
+┌──────────────────────────────────────────────────────────────────────┐
+│ <span class="hl">FR 智能助手 · 整体架构</span>                                              │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  <span class="hl2">用户层</span>                                                              │
+│  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐      │
+│  │ 对话界面 │  │ 图片上传 │  │ 报表管理 │  │ 数据源配置        │      │
+│  └────┬────┘  └────┬─────┘  └────┬─────┘  └────────┬─────────┘      │
+│       │            │             │                  │                │
+│  <span class="hl">API 层</span>                                                              │
+│  ┌────┴────────────┴─────────────┴──────────────────┴─────────┐      │
+│  │           FastAPI Server (server.py / web_server.py)        │      │
+│  │  /api/chat  /api/ocr  /api/fr/reports  /api/fr/datasources │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│                                                                      │
+│  <span class="hl2">Agent 编排层</span>                                                        │
+│  ┌────────────────────────────────────────────────────────────┐      │
+│  │  agent.py / agent_v6.py / agent_v7.py                      │      │
+│  │  ├─ 需求理解 → SQL生成 → CPT构建 → 验证 → 部署             │      │
+│  │  └─ 多轮对话 · 上下文管理 · 工具调用                       │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│                                                                      │
+│  <span class="hl">能力层</span>                                                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐      │
+│  │ OCR引擎   │ │ SQL引擎  │ │ RAG引擎  │ │ FR读取器          │      │
+│  │ ocr_skills│ │sql_skills│ │rag_engine│ │ fr_reader.py      │      │
+│  │ Step-1V   │ │ NL→SQL  │ │ 向量检索 │ │ .cpt解析 · 数据集  │      │
+│  │ Tesseract │ │ 优化器   │ │ SOP匹配  │ │ 数据源 · 配置读取   │      │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘      │
+│                                                                      │
+│  <span class="hl2">知识层</span>                                                              │
+│  ┌────────────────────────────────────────────────────────────┐      │
+│  │ 01_knowledge/                                              │      │
+│  │  ├─ raw/ 原始文档           ├─ parsed/ 解析后的结构化知识    │      │
+│  │  ├─ rag_docs/ RAG文档库     ├─ SOP聚类 · 模板 · 最佳实践    │      │
+│  │  └─ build_rag.py / cpt_parser.py / cluster_cpt.py          │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│                                                                      │
+│  <span class="hl">部署层</span>                                                              │
+│  ┌────────────────────────────────────────────────────────────┐      │
+│  │  CPT构建器 (cpt_builder.py v2/v4/v5)                       │      │
+│  │  设计 → 数据集绑定 → 参数配置 → 模板生成 → FR部署           │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│                                                                      │
+│  <span class="hl3">Java 工具集 (辅助层)</span>                                               │
+│  ┌──────────────┐ ┌────────────────┐ ┌──────────────────────┐      │
+│  │ DumpAgent    │ │AttachAgent     │ │ ResourceDecryptor     │      │
+│  │ 类转储/分析  │ │进程附加/热加载 │ │ FR资源文件解密         │      │
+│  └──────────────┘ └────────────────┘ └──────────────────────┘      │
+└──────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</div>
+
+<!-- ========== MODULES ========== -->
+<div id="modules" class="section">
+<h2><span class="emoji">📦</span> 模块详细分析</h2>
+<div class="desc">各核心模块的功能定位与技术实现</div>
+
+<table>
+<tr><th>模块</th><th>路径</th><th>核心文件</th><th>技术栈</th><th>状态</th></tr>
+<tr>
+<td>📚 知识库构建</td>
+<td><code>01_knowledge/</code></td>
+<td>build_rag.py, cpt_parser.py, cluster_cpt.py, rag_engine.py, sop_generator.py</td>
+<td>Python + NLP + Vector</td>
+<td><span class="tag ok">可开源</span></td>
+</tr>
+<tr>
+<td>🧠 嵌入模型</td>
+<td><code>02_embedding/</code></td>
+<td>model_cache/ (模型缓存文件)</td>
+<td>Embedding Model</td>
+<td><span class="tag warn">仅缓存</span></td>
+</tr>
+<tr>
+<td>🔍 RAG 提示</td>
+<td><code>03_rag/</code></td>
+<td>prompts/ (提示词模板)</td>
+<td>Prompt Engineering</td>
+<td><span class="tag ok">可开源</span></td>
+</tr>
+<tr>
+<td>🤖 AI Agent 引擎</td>
+<td><code>04_cpt_engine/</code></td>
+<td>agent.py, agent_v6.py, agent_v7.py, pipeline.py, server.py, cpt_builder*.py, sql_engine.py, sql_skills.py, ocr_skills.py, fr_reader.py</td>
+<td>Python + FastAPI + LLM</td>
+<td><span class="tag ok">可开源</span></td>
+</tr>
+<tr>
+<td>🌐 Web 界面</td>
+<td><code>04_cpt_engine/web/</code></td>
+<td>index.html, _style.css</td>
+<td>HTML + CSS + JS</td>
+<td><span class="tag ok">可开源</span></td>
+</tr>
+<tr>
+<td>📄 文档</td>
+<td><code>docs/</code></td>
+<td>SOP聚类需求分析.md, SOP需求分析.md</td>
+<td>Markdown</td>
+<td><span class="tag ok">可开源</span></td>
+</tr>
+<tr>
+<td>☕ Java Agent 工具</td>
+<td><code>C:\workspace\</code></td>
+<td>DumpAgent.java, AttachAgent.java, ResourceDecryptor.java, Check.java</td>
+<td>Java + Instrumentation</td>
+<td><span class="tag ok">可开源</span></td>
+</tr>
+<tr>
+<td>📦 FR 插件</td>
+<td><code>plugin.jar</code></td>
+<td>FineReport AI 插件 (11MB 编译包)</td>
+<td>Java</td>
+<td><span class="tag err">专有·不可开源</span></td>
+</tr>
+<tr>
+<td>🔐 加密资源</td>
+<td><code>res/ res_decrypted/</code></td>
+<td>FR 加密/解密后的资源文件</td>
+<td>加密数据</td>
+<td><span class="tag err">专有·不可开源</span></td>
+</tr>
+</table>
+</div>
+
+<!-- ========== OPEN SOURCE LIST ========== -->
+<div id="opensource" class="section">
+<h2><span class="emoji">🔓</span> 开源可行性分析</h2>
+<div class="desc">明确可开源与不可开源的模块划分</div>
+
+<div class="grid-2">
+<div class="card" style="border-color:rgba(102,187,106,.3)">
+<h3 style="color:var(--green)">✅ 可开源的核心代码</h3>
+<div style="font-size:13px;color:var(--dim);line-height:2">
+<strong style="color:var(--text)">📂 01_knowledge/</strong> — RAG 知识库构建管线<br>
+<strong style="color:var(--text)">📂 03_rag/</strong> — 提示词模板<br>
+<strong style="color:var(--text)">📂 04_cpt_engine/</strong> — AI Agent 核心引擎<br>
+&nbsp;&nbsp;├─ agent.py / agent_v6.py / agent_v7.py — 多版本 Agent<br>
+&nbsp;&nbsp;├─ pipeline.py — 全流程编排<br>
+&nbsp;&nbsp;├─ server.py / web_server.py — API 服务<br>
+&nbsp;&nbsp;├─ cpt_builder.py / v2 / v4 / v5 — CPT 构建器<br>
+&nbsp;&nbsp;├─ sql_engine.py / sql_skills.py — SQL 智能引擎<br>
+&nbsp;&nbsp;├─ ocr_skills.py — OCR 识别能力<br>
+&nbsp;&nbsp;├─ fr_reader.py — FineReport 文件读取器<br>
+&nbsp;&nbsp;├─ cpt_templates.py — 报表模板管理<br>
+&nbsp;&nbsp;├─ checker.py — 报表验证器<br>
+&nbsp;&nbsp;└─ web/ — 前端界面<br>
+<strong style="color:var(--text)">📂 docs/</strong> — 项目文档<br>
+<strong style="color:var(--text)">📄 *.java</strong> — Java Agent 工具（DumpAgent, AttachAgent, ResourceDecryptor）<br>
+</div>
+</div>
+
+<div class="card" style="border-color:rgba(239,83,80,.3)">
+<h3 style="color:var(--red)">❌ 不可开源的内容</h3>
+<div style="font-size:13px;color:var(--dim);line-height:2">
+<strong style="color:var(--text)">📦 plugin.jar</strong> — FR 官方 AI 插件编译包（11MB）<br>
+&nbsp;&nbsp;涉及 FineReport 商业软件知识产权<br>
+<strong style="color:var(--text)">📦 dumped.jar</strong> — 反编译/转储的 FR 类文件<br>
+&nbsp;&nbsp;包含 FR 内部实现代码<br>
+<strong style="color:var(--text)">🔐 res/ res_decrypted/</strong> — 加密/解密后的 FR 资源<br>
+&nbsp;&nbsp;包含 FR 商业资源文件<br>
+<strong style="color:var(--text)">🔑 API Keys</strong> — pipeline.py 中的 LLM API 密钥<br>
+&nbsp;&nbsp;(DEEPSEEK_KEY, STEP1V_KEY 等)<br>
+<strong style="color:var(--text)">📂 02_embedding/model_cache/</strong><br>
+&nbsp;&nbsp;模型缓存文件（可从官方渠道下载）<br>
+<strong style="color:var(--text)">📂 build/ build3/</strong><br>
+&nbsp;&nbsp;编译产物<br>
+</div>
+</div>
+</div>
+
+<div class="card" style="margin-top:16px;border-color:var(--accent)">
+<h3 style="color:var(--accent)">📋 开源清理清单</h3>
+<div style="font-size:13px;color:var(--dim);line-height:2">
+开源前需要从代码中清理以下敏感信息：<br><br>
+1. <strong style="color:var(--gold)}">pipeline.py</strong> 中的 <code>STEP1V_KEY</code> 和 <code>DEEPSEEK_KEY</code> — 替换为环境变量引用<br>
+2. <strong style="color:var(--gold)}">server.py</strong> 中的固定路径 <code>C:\workspace\04_cpt_engine</code> — 替换为相对路径<br>
+3. <strong style="color:var(--gold)}">pipeline.py</strong> 中的 <code>FR_REPORTLETS</code> 固定路径 — 改为配置化<br>
+4. 所有 <code>.jar</code> 编译文件移除（保留源码即可）<br>
+5. <code>res/</code> 加密资源目录移除<br>
+6. 添加 <code>.gitignore</code> 排除 model_cache、build、*.jar、res* 等目录<br>
+</div>
+</div>
+</div>
+
+<!-- ========== DEMO ========== -->
+<div id="demo" class="section">
+<h2><span class="emoji">🎬</span> 功能演示</h2>
+<div class="desc">FR 数字员工界面预览 · 六大核心功能模块</div>
+
+<div class="grid-3">
+<div class="card">
+<div class="mock-preview">
+<span class="big">📊</span>
+<strong>仪表盘</strong>
+<span>FR 运行状态 · 报表概览 · 数据源健康度</span>
+</div>
+<h3>仪表盘</h3>
+<p>实时查看 FineReport 服务状态、报表总数、数据源连接状态等核心指标。</p>
+</div>
+
+<div class="card">
+<div class="mock-preview">
+<span class="big">📁</span>
+<strong>报表管理</strong>
+<span>浏览 · 搜索 · 查看详情 · XML预览</span>
+</div>
+<h3>报表管理</h3>
+<p>浏览 FR 报表目录，支持名称搜索、分页查看、数据集与SQL详情展示。</p>
+</div>
+
+<div class="card">
+<div class="mock-preview">
+<span class="big">🗄️</span>
+<strong>数据源</strong>
+<span>连接管理 · 测试 · 配置查看</span>
+</div>
+<h3>数据源管理</h3>
+<p>查看 FR 配置的所有数据源，支持连接测试与配置参数查看。</p>
+</div>
+
+<div class="card">
+<div class="mock-preview">
+<span class="big">🔍</span>
+<strong>OCR 识别</strong>
+<span>拖拽上传 · 双引擎 · 表格提取</span>
+</div>
+<h3>OCR 图片识别</h3>
+<p>支持 Tesseract 和 Step-1V 双引擎，从报表截图自动提取表格结构与数据。</p>
+</div>
+
+<div class="card">
+<div class="mock-preview">
+<span class="big">💬</span>
+<strong>AI 对话</strong>
+<span>自然语言 · 需求分析 · 报表生成</span>
+</div>
+<h3>AI 智能对话</h3>
+<p>通过自然语言描述需求，Agent 自动分析、生成 SQL、构建报表并部署。</p>
+</div>
+
+<div class="card">
+<div class="mock-preview">
+<span class="big">📦</span>
+<strong>输出管理</strong>
+<span>生成文件 · 下载 · 部署追踪</span>
+</div>
+<h3>输出文件管理</h3>
+<p>管理 AI 自动生成的报表文件，支持预览、下载和部署追踪。</p>
+</div>
+</div>
+
+<!-- Chat demo -->
+<div class="card" style="margin-top:16px">
+<h3 style="color:var(--accent)">💬 AI 对话演示</h3>
+<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:8px;max-height:400px;overflow-y:auto">
+<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;max-width:85%">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">🤖 系统</div>
+你好！我是 FR 数字员工，可以帮你：<br>
+• 分析需求并生成报表<br>
+• 解答 FineReport 使用问题<br>
+• 查看报表和数据源信息<br><br>
+请输入你的需求～
+</div>
+<div style="background:rgba(79,195,247,.12);border-radius:8px;padding:12px 16px;margin-bottom:10px;max-width:85%;margin-left:auto">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">🙋 你</div>
+帮我生成一个合同管理报表，按客户分类统计合同金额和到期时间
+</div>
+<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;max-width:85%">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">🤖 Agent</div>
+<strong style="color:var(--accent)">Step 1:</strong> 需求分析 ✅<br>
+&nbsp;&nbsp;→ 识别到：合同管理报表、客户分类、合同金额、到期时间<br>
+<strong style="color:var(--green)">Step 2:</strong> 检索知识库 ✅<br>
+&nbsp;&nbsp;→ 匹配到 3 个类似模板：合同台账模板、客户分析模板<br>
+<strong style="color:var(--gold)">Step 3:</strong> 生成 SQL ✅<br>
+&nbsp;&nbsp;→ 已生成查询语句（关联 contract + customer 表）<br>
+<strong style="color:var(--orange)">Step 4:</strong> 构建 CPT ✅<br>
+&nbsp;&nbsp;→ 报表已生成：按客户分组的合同金额汇总 + 到期预警<br>
+<strong style="color:var(--red)">Step 5:</strong> 部署 🚀<br>
+&nbsp;&nbsp;→ 报表已部署到 FR 服务器 <span style="color:var(--green)">✓</span><br><br>
+📊 <strong>生成报表：</strong> 合同管理报表.cpt<br>
+📋 <strong>包含字段：</strong> 客户名称、合同数量、总金额、最大金额、最早到期日、即将到期(30天内)
+</div>
+<div style="background:rgba(79,195,247,.12);border-radius:8px;padding:12px 16px;margin-bottom:10px;max-width:85%;margin-left:auto">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">🙋 你</div>
+把合同金额大于100万的标红显示
+</div>
+<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:85%">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">🤖 Agent</div>
+✅ 已更新报表样式：添加条件格式，合同金额 > 100万 的单元格显示为红色背景+加粗。<br>
+🔗 <span style="color:var(--accent)">预览报表</span>
+</div>
+</div>
+</div>
+</div>
+
+<footer>
+FR 智能助手 · AI for FineReport · 基于 Python + FastAPI + LLM 构建
+</footer>
+
+<script>
+// Smooth scroll for nav
+document.querySelectorAll('nav a').forEach(a => {
+a.onclick = e => {
+e.preventDefault();
+document.querySelectorAll('nav a').forEach(x => x.classList.remove('active'));
+a.classList.add('active');
+document.getElementById(a.getAttribute('href').slice(1)).scrollIntoView({behavior:'smooth'});
+};
+});
+
+// Highlight active nav on scroll
+window.onscroll = () => {
+const sections = document.querySelectorAll('.section');
+let current = '';
+sections.forEach(s => {
+if (window.scrollY >= s.offsetTop - 200) current = s.id;
+});
+document.querySelectorAll('nav a').forEach(a => {
+a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+});
+};
+</script>
+</body>
+</html>
