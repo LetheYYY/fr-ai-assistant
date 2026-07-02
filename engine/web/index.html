@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FR 数字员工 · FineReport AI Agent</title>
+<link rel="stylesheet" href="/_style.css">
+</head>
+<body>
+<div id="app">
+<div id="sidebar">
+  <div class="logo">🤖 FR 数字员工</div>
+  <nav>
+    <a href="#" data-page="dashboard" class="active"><span class="icon">📊</span> 仪表盘</a>
+    <a href="#" data-page="reports"><span class="icon">📁</span> 报表管理</a>
+    <a href="#" data-page="datasource"><span class="icon">🗄️</span> 数据源</a>
+    <a href="#" data-page="ocr"><span class="icon">🔍</span> 图片识别</a>
+    <a href="#" data-page="chat"><span class="icon">💬</span> AI 对话</a>
+    <a href="#" data-page="outputs"><span class="icon">📦</span> 输出文件</a>
+  </nav>
+  <div class="status-bar">
+    <span id="fr-dot" class="dot off"></span>
+    <span id="fr-status-text">FR: 检测中...</span>
+  </div>
+</div>
+<div id="main">
+  <!-- Dashboard -->
+  <div id="page-dashboard" class="page active">
+    <div class="stats-row" id="dash-stats"></div>
+    <div class="card"><h2>📋 报表概览</h2><div id="dash-top-reports"><span class="loading"></span> 加载中...</div></div>
+    <div class="card"><h2>🗄️ 数据源状态</h2><div id="dash-ds"></div></div>
+  </div>
+  <!-- Reports -->
+  <div id="page-reports" class="page">
+    <div class="card">
+      <h2>📁 报表管理</h2>
+      <div class="search-bar">
+        <input type="text" id="report-search" placeholder="搜索报表名称..." oninput="loadReports(1)">
+        <button onclick="loadReports(1)">🔍 搜索</button>
+      </div>
+      <div id="reports-table"><span class="loading"></span> 加载中...</div>
+      <div class="pagination" id="reports-pager"></div>
+    </div>
+    <div class="card" id="report-detail-card" style="display:none">
+      <div class="flex-between"><h2>📄 报表详情</h2><button class="ghost small" onclick="document.getElementById('report-detail-card').style.display='none'">✕ 关闭</button></div>
+      <div id="report-detail"></div>
+    </div>
+  </div>
+  <!-- Datasource -->
+  <div id="page-datasource" class="page">
+    <div class="card"><h2>🗄️ 数据源</h2><div id="ds-list"><span class="loading"></span> 加载中...</div></div>
+    <div class="card"><h2>⚙️ FR 配置</h2><div id="fr-config"><span class="loading"></span> 加载中...</div></div>
+  </div>
+  <!-- OCR -->
+  <div id="page-ocr" class="page">
+    <div class="card">
+      <h2>🔍 图片识别 (OCR)</h2>
+      <div class="upload-zone" id="ocr-drop" onclick="document.getElementById('ocr-file').click()">
+        <div class="drop-icon">📸</div>
+        <div>点击或拖拽图片到这里</div>
+        <div class="text-sm text-dim mt-8">支持 JPG/PNG/BMP，建议清晰截图</div>
+      </div>
+      <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="doOCR(this.files[0])">
+      <div class="flex-row gap-8">
+        <select id="ocr-engine" style="width:auto">
+          <option value="auto">自动 (Step-1V > Tesseract)</option>
+          <option value="step1v">Step-1V (¥付费, 高精度)</option>
+          <option value="tesseract">Tesseract (免费, 快速)</option>
+        </select>
+        <button id="ocr-btn" class="ghost" onclick="doOCR()" disabled>开始识别</button>
+      </div>
+      <div id="ocr-progress" style="display:none" class="mt-12">
+        <div class="flex-row gap-8"><span class="loading"></span><span id="ocr-msg">识别中...</span></div>
+        <div class="progress"><div class="progress-bar" style="width:60%"></div></div>
+      </div>
+    </div>
+    <div class="card" id="ocr-result-card" style="display:none">
+      <h2>📊 识别结果 <span id="ocr-meta"></span></h2>
+      <div id="ocr-result"></div>
+    </div>
+  </div>
+  <!-- Chat -->
+  <div id="page-chat" class="page">
+    <div class="chat-area">
+      <div class="chat-messages" id="chat-msgs">
+        <div class="chat-msg agent"><div class="time">系统</div>你好！我是 FR 数字员工，可以帮你：<br>• 分析需求并生成报表<br>• 解答 FineReport 使用问题<br>• 查看报表和数据源信息<br><br>请输入你的需求～</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="输入你的需求，例如：帮我生成一个合同管理报表..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()">发送</button>
+      </div>
+    </div>
+  </div>
+  <!-- Outputs -->
+  <div id="page-outputs" class="page">
+    <div class="card"><h2>📦 输出文件</h2><div id="outputs-list"><span class="loading"></span> 加载中...</div></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ============ API Layer ============
+const API = {
+  async get(url) { const r = await fetch(url); return r.json(); },
+  async post(url, data) { const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); return r.json(); },
+  async postForm(url, formData) { const r = await fetch(url, {method:'POST',body:formData}); return r.json(); }
+};
+
+// ============ Navigation ============
+document.querySelectorAll('#sidebar nav a').forEach(a => {
+  a.onclick = e => { e.preventDefault();
+    document.querySelectorAll('#sidebar nav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+a.dataset.page).classList.add('active');
+    loadPage(a.dataset.page);
+  };
+});
+
+function loadPage(page) {
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'reports') loadReports(1);
+  if (page === 'datasource') { loadDatasources(); loadFRConfig(); }
+  if (page === 'outputs') loadOutputs();
+  loadFRStatus();
+}
+
+// ============ Toast ============
+function toast(msg, type='success') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ============ FR Status ============
+async function loadFRStatus() {
+  try {
+    const s = await API.get('/api/fr/status');
+    const dot = document.getElementById('fr-dot');
+    const txt = document.getElementById('fr-status-text');
+    if (s.running) { dot.className = 'dot on'; txt.textContent = 'FR: 运行中'; }
+    else { dot.className = 'dot off'; txt.textContent = 'FR: 未启动'; }
+  } catch(e) { document.getElementById('fr-status-text').textContent = 'FR: 离线'; }
+}
+
+// ============ Dashboard ============
+async function loadDashboard() {
+  try {
+    const [status, reports] = await Promise.all([
+      API.get('/api/fr/status'),
+      API.get('/api/fr/reports?size=5')
+    ]);
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="label">FR 状态</div><div class="value ${status.running?'green':'red'}">${status.running?'🟢 运行中':'🔴 未启动'}</div></div>
+      <div class="stat-card"><div class="label">端口</div><div class="value blue">${status.port||'N/A'}</div></div>
+      <div class="stat-card"><div class="label">报表总数</div><div class="value orange">${status.report_count||0}</div></div>
+      <div class="stat-card"><div class="label">FR 版本</div><div class="value" style="font-size:14px">${status.version||'未知'}</div></div>
+    `;
+    if (reports.reports) {
+      let html = '<table><tr><th>名称</th><th>大小</th><th>修改时间</th></tr>';
+      reports.reports.forEach(r => { html += `<tr><td>📄 ${r.name}</td><td>${(r.size_kb||0).toFixed(1)} KB</td><td>${r.mtime||''}</td></tr>`; });
+      html += '</table>';
+      document.getElementById('dash-top-reports').innerHTML = html;
+    }
+    const ds = await API.get('/api/fr/datasources');
+    let dsHtml = '<table><tr><th>名称</th><th>数据库</th><th>状态</th></tr>';
+    (ds||[]).forEach(d => {
+      dsHtml += `<tr><td>${d.name||d.Name||'?'}</td><td>${d.type||d.Driver||'?'}</td><td>${d.ok?'<span class="badge ok">✅ 可用</span>':'<span class="badge err">❌ 不可用</span>'}</td></tr>`;
+    });
+    dsHtml += '</table>';
+    document.getElementById('dash-ds').innerHTML = dsHtml || '<div class="text-dim">未找到数据源配置</div>';
+  } catch(e) { console.error(e); }
+}
+
+// ============ Reports ============
+let reportsPage = 1;
+async function loadReports(page) {
+  reportsPage = page || 1;
+  const kw = document.getElementById('report-search').value;
+  try {
+    const data = await API.get(`/api/fr/reports?keyword=${encodeURIComponent(kw)}&page=${reportsPage}&size=20`);
+    let html = '<table><tr><th>报表名称</th><th>大小</th><th>修改时间</th><th>操作</th></tr>';
+    (data.reports||[]).forEach(r => {
+      html += `<tr><td>📄 ${r.name}</td><td>${(r.size_kb||0).toFixed(1)} KB</td><td>${r.mtime||''}</td>
+        <td><button class="small" onclick="loadReportDetail('${encodeURIComponent(r.path||r.name)}')">查看</button></td></tr>`;
+    });
+    html += '</table>';
+    document.getElementById('reports-table').innerHTML = html;
+    const totalPages = Math.ceil((data.total||0)/(data.size||20));
+    document.getElementById('reports-pager').innerHTML = `
+      <button ${reportsPage<=1?'disabled':''} onclick="loadReports(${reportsPage-1})">上一页</button>
+      <span>第 ${reportsPage} / ${totalPages} 页 (共 ${data.total||0} 个)</span>
+      <button ${reportsPage>=totalPages?'disabled':''} onclick="loadReports(${reportsPage+1})">下一页</button>`;
+  } catch(e) { console.error(e); }
+}
+
+async function loadReportDetail(name) {
+  try {
+    const d = await API.get('/api/fr/reports/' + name);
+    document.getElementById('report-detail-card').style.display = 'block';
+    let html = `<div class="detail-grid">
+      <div class="kv"><span class="k">名称</span><span class="v">${d.name||''}</span></div>
+      <div class="kv"><span class="k">路径</span><span class="v">${d.path||''}</span></div>
+      <div class="kv"><span class="k">大小</span><span class="v">${(d.size_kb||0).toFixed(1)} KB</span></div>
+      <div class="kv"><span class="k">修改时间</span><span class="v">${d.mtime||''}</span></div>
+      <div class="kv"><span class="k">数据集数量</span><span class="v">${(d.datasets||[]).length}</span></div>
+    </div>`;
+    if (d.datasets && d.datasets.length) {
+      html += '<h3>📊 数据集</h3>';
+      d.datasets.forEach((ds,i) => {
+        html += `<div style="margin:8px 0"><strong>ds${i+1}:</strong> ${ds.name||''} (${ds.db||''})<br>`;
+        if (ds.sql) html += `<pre>${ds.sql}</pre>`;
+        html += `</div>`;
+      });
+    }
+    if (d.columns && d.columns.length) {
+      html += `<h3>📋 列 (${d.columns.length})</h3><div class="text-sm">${d.columns.join(', ')}</div>`;
+    }
+    if (d.xml_preview) {
+      html += `<h3>📝 XML 预览</h3><pre>${d.xml_preview}</pre>`;
+    }
+    document.getElementById('report-detail').innerHTML = html;
+    document.getElementById('report-detail-card').scrollIntoView();
+  } catch(e) { toast('加载失败: '+e.message, 'error'); }
+}
+
+// ============ Datasource ============
+async function loadDatasources() {
+  try {
+    const ds = await API.get('/api/fr/datasources');
+    let html = '<table><tr><th>名称</th><th>类型/驱动</th><th>JDBC URL</th><th>用户</th><th>操作</th></tr>';
+    (ds||[]).forEach(d => {
+      html += `<tr><td>${d.name||d.Name||'?'}</td><td>${d.type||d.Driver||'?'}</td><td style="font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis">${d.url||d.Url||''}</td>
+        <td>${d.user||d.User||''}</td><td><button class="small" onclick="testDS('${d.name||d.Name}')">测试连接</button></td></tr>`;
+    });
+    html += '</table>';
+    if (!ds || !ds.length) html += '<div class="text-dim">未配置数据源（FR 未运行或 finedb 不可读）</div>';
+    document.getElementById('ds-list').innerHTML = html;
+  } catch(e) { document.getElementById('ds-list').innerHTML = '<span class="badge err">加载失败</span>'; }
+}
+
+async function testDS(name) {
+  toast('正在测试 ' + name + ' 连接...');
+  try {
+    const fd = new FormData(); fd.append('db_name', name);
+    const r = await API.postForm('/api/fr/datasources/test', fd);
+    if (r.ok) toast('✅ ' + name + ' 连接成功！');
+    else toast('❌ ' + name + ' 连接失败: ' + (r.error||'未知'), 'error');
+  } catch(e) { toast('❌ 测试失败: '+e.message, 'error'); }
+}
+
+async function loadFRConfig() {
+  try {
+    const c = await API.get('/api/fr/config');
+    let html = '<div class="detail-grid">';
+    for (const [k,v] of Object.entries(c||{})) {
+      html += `<div class="kv"><span class="k">${k}</span><span class="v">${typeof v==='object'?JSON.stringify(v):v}</span></div>`;
+    }
+    html += '</div>';
+    document.getElementById('fr-config').innerHTML = html;
+  } catch(e) { document.getElementById('fr-config').innerHTML = '<span class="badge err">加载失败</span>'; }
+}
+
+// ============ OCR ============
+function doOCR(file) {
+  if (!file) { toast('请先选择图片', 'error'); return; }
+  document.getElementById('ocr-progress').style.display = 'block';
+  document.getElementById('ocr-msg').textContent = '识别中...';
+  document.getElementById('ocr-result-card').style.display = 'none';
+  
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('engine', document.getElementById('ocr-engine').value);
+  
+  API.postForm('/api/ocr', fd).then(r => {
+    document.getElementById('ocr-progress').style.display = 'none';
+    document.getElementById('ocr-result-card').style.display = 'block';
+    const meta = document.getElementById('ocr-meta');
+    meta.innerHTML = `<span class="badge ok">${r.engine||''}</span> ${(r.elapsed_ms/1000).toFixed(1)}s | ¥${(r.cost_rmb||0).toFixed(4)} | ${r.tokens_used||0} tokens`;
+    
+    let html = '';
+    if (r.tables && r.tables.length) {
+      r.tables.forEach(t => {
+        html += `<div class="card"><h3>${t.caption||'表格'}</h3>`;
+        html += '<div class="preview-table"><table><tr>';
+        (t.headers||[]).forEach(h => html += `<th>${h}</th>`);
+        html += '</tr>';
+        (t.rows||[]).forEach(row => {
+          html += '<tr>';
+          (t.headers||[]).forEach(h => html += `<td>${row[h]||''}</td>`);
+          html += '</tr>';
+        });
+        html += '</table></div></div>';
+      });
+    }
+    if (r.text && !r.tables?.length) {
+      html += `<div class="card"><h3>识别文本</h3><pre>${r.text}</pre></div>`;
+    }
+    if (!html) html = '<div class="text-dim">未识别到内容</div>';
+    document.getElementById('ocr-result').innerHTML = html;
+    toast('✅ 识别完成！');
+  }).catch(e => {
+    document.getElementById('ocr-progress').style.display = 'none';
+    toast('❌ 识别失败: '+e.message, 'error');
+  });
+}
+
+// Drag & drop
+const dropZone = document.getElementById('ocr-drop');
+if (dropZone) {
+  dropZone.ondragover = e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; };
+  dropZone.ondragleave = () => { dropZone.style.borderColor = 'var(--border)'; };
+  dropZone.ondrop = e => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--border)';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) doOCR(file);
+  };
+}
+
+// ============ Chat ============
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  
+  const container = document.getElementById('chat-msgs');
+  container.innerHTML += `<div class="chat-msg user"><div class="time">${new Date().toLocaleTimeString()}</div>${msg}</div>`;
+  inp.value = '';
+  container.innerHTML += `<div class="chat-msg agent"><div class="time">AI</div><span class="loading"></span> 思考中...</div>`;
+  container.scrollTop = container.scrollHeight;
+  
+  try {
+    const r = await API.post('/api/chat', {message: msg});
+    const last = container.querySelectorAll('.chat-msg.agent');
+    const el = last[last.length-1];
+    let respHtml = (r.response||r.reply||JSON.stringify(r)).replace(/\n/g,'<br>');
+    if (r.path) respHtml += `<br><br><a href="/api/download/${encodeURIComponent(r.path.split('/').pop())}" class="badge ok" style="text-decoration:none">📥 下载 CPT</a>`;
+    el.innerHTML = `<div class="time">AI · ${new Date().toLocaleTimeString()}</div>${respHtml}`;
+    container.scrollTop = container.scrollHeight;
+  } catch(e) {
+    const last = container.querySelectorAll('.chat-msg.agent');
+    last[last.length-1].innerHTML = `<div class="time">AI</div>❌ 错误: ${e.message}`;
+  }
+}
+
+// ============ Outputs ============
+async function loadOutputs() {
+  try {
+    const data = await API.get('/api/outputs');
+    let html = '<table><tr><th>文件名</th><th>大小</th><th>操作</th></tr>';
+    (data.files||[]).forEach(f => {
+      html += `<tr><td>📦 ${f.name}</td><td>${(f.size/1024).toFixed(1)} KB</td>
+        <td><a href="/api/download/${f.name}" class="badge ok" style="text-decoration:none">下载</a></td></tr>`;
+    });
+    html += '</table>';
+    if (!data.files?.length) html += '<div class="text-dim">暂无输出文件</div>';
+    document.getElementById('outputs-list').innerHTML = html;
+  } catch(e) { document.getElementById('outputs-list').innerHTML = '<span class="badge err">加载失败</span>'; }
+}
+
+// ============ Init ============
+loadDashboard();
+loadFRStatus();
+setInterval(loadFRStatus, 30000);
+
+// File input change handler
+document.getElementById('ocr-file').onchange = function() {
+  if (this.files[0]) doOCR(this.files[0]);
+};
+</script>
+</body>
+</html>
